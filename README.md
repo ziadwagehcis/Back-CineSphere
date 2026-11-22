@@ -17,6 +17,8 @@ The API runs at **http://localhost:3001**. Opening its root URL returns a JSON s
 
 Configure MongoDB in `.env` in the repository root with `MONGODB_CONNECTION` (or `MONGODB_URI`) and `DB_NAME`. Defaults are `mongodb://127.0.0.1:27017/movies` and `movies`.
 
+The API maintains catalog sort indexes and allows disk-backed sorting for large paginated queries.
+
 Seed curated movies without deleting existing data:
 
 ```powershell

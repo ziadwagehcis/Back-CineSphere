@@ -52,7 +52,7 @@ function buildSort(sortBy) {
             return { year: 1, _id: 1 };
         case "title_asc":
         case "title":
-            return { title: 1 };
+            return { title: 1, _id: 1 };
         case "year_desc":
         case "newest":
         default:
@@ -145,14 +145,17 @@ async function search(params) {
 }
 
 async function searchPage(params = {}) {
-    const page = Math.max(1, parseInt(params.page, 10) || 1);
+    const requestedPage = parseInt(params.page, 10);
+    const page = Number.isSafeInteger(requestedPage) && requestedPage > 0
+        ? requestedPage
+        : 1;
     const pageSize = Math.min(48, Math.max(1, parseInt(params.pageSize, 10) || 12));
     const filter = buildSearchFilter(params);
     const sort = buildSort(params.sortBy || "year_desc");
 
     return withCollection(async collection => {
         const [data, total] = await Promise.all([
-            collection.find(filter)
+            collection.find(filter, { allowDiskUse: true })
                 .sort(sort)
                 .skip((page - 1) * pageSize)
                 .limit(pageSize)
@@ -167,8 +170,11 @@ async function ensureIndexes() {
     return withCollection(async collection => {
         await Promise.all([
             collection.createIndex({ title: 1 }),
+            collection.createIndex({ title: 1, _id: 1 }),
             collection.createIndex({ year: -1 }),
+            collection.createIndex({ year: -1, _id: -1 }),
             collection.createIndex({ rating: -1 }),
+            collection.createIndex({ rating: -1, year: -1, _id: -1 }),
             collection.createIndex({ genres: 1 }),
             collection.createIndex({ cast: 1 }),
             collection.createIndex({ director: 1 }),
