@@ -130,6 +130,18 @@ function buildSearchFilter(params) {
     return filter;
 }
 
+function normalizeGenreNames(genres) {
+    const uniqueGenres = new Map();
+    for (const genre of genres || []) {
+        const name = String(genre || "").trim();
+        const key = name.toLowerCase();
+        if (name && !uniqueGenres.has(key)) {
+            uniqueGenres.set(key, name);
+        }
+    }
+    return [...uniqueGenres.values()].sort((a, b) => a.localeCompare(b));
+}
+
 async function search(params) {
     if (typeof params === "string") {
         params = { q: params };
@@ -237,18 +249,20 @@ async function destroy(id) {
 async function getGenres() {
     return withCollection(async collection => {
         const genres = await collection.distinct("genres");
-        return (genres || []).filter(Boolean).sort((a, b) => a.localeCompare(b));
+        return normalizeGenreNames(genres);
     });
 }
 
 async function getStats() {
     return withCollection(async collection => {
-        const totalMovies = await collection.countDocuments();
-        const distinctGenres = await collection.distinct("genres");
-        const topRated = await collection.find({}).sort({ rating: -1 }).limit(1).toArray();
+        const [totalMovies, genres, topRated] = await Promise.all([
+            collection.countDocuments(),
+            collection.distinct("genres"),
+            collection.find({}).sort({ rating: -1 }).limit(1).toArray()
+        ]);
         return {
             totalMovies,
-            totalGenres: distinctGenres.length,
+            totalGenres: normalizeGenreNames(genres).length,
             topRated: topRated[0] || null
         };
     });
